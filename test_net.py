@@ -87,6 +87,12 @@ def parse_args():
   parser.add_argument('--vis', dest='vis',
                       help='visualization mode',
                       action='store_true')
+  parser.add_argument('--use_dpp', dest='use_dpp',
+                      help='use dpp instead of NMS',
+                      action='store_true')
+  parser.add_argument('--dpp_alpha', dest='dpp_alpha',
+                      help='alpha for DPP',
+                      default=5, type=float)
   args = parser.parse_args()
   return args
 
@@ -238,7 +244,7 @@ if __name__ == '__main__':
       rois, cls_prob, bbox_pred, \
       rpn_loss_cls, rpn_loss_box, \
       RCNN_loss_cls, RCNN_loss_bbox, \
-      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes, args.use_dpp, args.dpp_alpha)
 
       scores = cls_prob.data
       boxes = rois.data[:, :, 1:5]

@@ -19,6 +19,7 @@ from .generate_anchors import generate_anchors
 from .bbox_transform import bbox_transform_inv, clip_boxes, clip_boxes_batch
 # from model.nms.nms_wrapper import nms
 from model.roi_layers import nms
+from model.roi_layers.dpp import dpp
 import pdb
 
 DEBUG = False
@@ -68,6 +69,8 @@ class _ProposalLayer(nn.Module):
         bbox_deltas = input[1]
         im_info = input[2]
         cfg_key = input[3]
+        use_dpp = input[4]
+        dpp_alpha = input[5]
 
         pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
         post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
@@ -144,11 +147,15 @@ class _ProposalLayer(nn.Module):
             # 6. apply nms (e.g. threshold = 0.7)
             # 7. take after_nms_topN (e.g. 300)
             # 8. return the top proposals (-> RoIs top)
-            keep_idx_i = nms(proposals_single, scores_single.squeeze(1), nms_thresh)
-            keep_idx_i = keep_idx_i.long().view(-1)
+            if not use_dpp:
+                keep_idx_i = nms(proposals_single, scores_single.squeeze(1), nms_thresh)
+                keep_idx_i = keep_idx_i.long().view(-1)
+            else:            
+                keep_idx_i = dpp(proposals_single, scores_single.squeeze(1), dpp_alpha, post_nms_topN)
 
-            if post_nms_topN > 0:
-                keep_idx_i = keep_idx_i[:post_nms_topN]
+            if not use_dpp:
+                if post_nms_topN > 0:
+                    keep_idx_i = keep_idx_i[:post_nms_topN]
             proposals_single = proposals_single[keep_idx_i, :]
             scores_single = scores_single[keep_idx_i, :]
 
